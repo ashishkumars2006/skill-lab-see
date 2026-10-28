@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#111827">
+  <title>{% block title %}CodeForge — Online Judge{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  {% block head %}{% endblock %}
+</head>
+<body>
+  <header class="site-header">
+    <div class="nav-wrap">
+      <a class="brand" href="{{ url_for('index') }}" aria-label="CodeForge home">
+        <span class="brand-mark">&lt;/&gt;</span>
+        <span class="brand-copy">codeforge<span class="brand-dot">.</span><small>ONLINE JUDGE</small></span>
+      </a>
+      <nav class="main-nav" aria-label="Main navigation">
+        <a class="nav-link {% if request.endpoint == 'index' %}active{% endif %}" href="{{ url_for('index') }}">Problems</a>
+        <a class="nav-link {% if request.endpoint == 'leaderboard' %}active{% endif %}" href="{{ url_for('leaderboard') }}">Leaderboard</a>
+        {% if g.user %}<a class="nav-link {% if request.endpoint in ['submissions', 'submission_detail'] %}active{% endif %}" href="{{ url_for('submissions') }}">My submissions</a>{% endif %}
+        {% if g.user and g.user['role'] == 'admin' %}<a class="nav-link {% if request.endpoint in ['admin_dashboard', 'create_problem'] %}active{% endif %}" href="{{ url_for('admin_dashboard') }}">Admin</a>{% endif %}
+      </nav>
+      <div class="nav-account">
+        {% if g.user %}
+          <span class="user-chip"><span class="user-avatar">{{ g.user['username'][0]|upper }}</span><span class="user-name">{{ g.user['username'] }}</span></span>
+          <form method="post" action="{{ url_for('logout') }}" class="inline-form">{{ csrf_input() }}<button class="button button-quiet button-small" type="submit">Sign out</button></form>
+        {% else %}
+          <a class="nav-login" href="{{ url_for('login') }}">Sign in</a>
+          <a class="button button-primary button-small" href="{{ url_for('register') }}">Get started <span aria-hidden="true">↗</span></a>
+        {% endif %}
+      </div>
+      <button class="mobile-menu" id="mobile-menu" aria-label="Toggle navigation" aria-expanded="false">☰</button>
+    </div>
+  </header>
+
+  <main class="page-shell">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}<div class="flash-stack">{% for category, message in messages %}<div class="flash flash-{{ category }}" role="status">{{ message }}<button type="button" class="flash-close" aria-label="Dismiss message" onclick="this.parentElement.remove()">×</button></div>{% endfor %}</div>{% endif %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner"><span class="footer-brand"><span class="brand-mark small-mark">&lt;/&gt;</span> codeforge</span><span>Practice with purpose. Ship with confidence.</span><span class="footer-status"><i></i> Judge workspace</span></div>
+  </footer>
+  <script>
+    const mobileMenu = document.getElementById('mobile-menu');
+    if (mobileMenu) mobileMenu.addEventListener('click', () => {
+      const nav = document.querySelector('.main-nav');
+      const open = nav.classList.toggle('nav-open');
+      mobileMenu.setAttribute('aria-expanded', String(open));
+    });
+  </script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

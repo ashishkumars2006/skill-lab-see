@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Submission #{{ submission.id }} — CodeForge{% endblock %}
+{% block content %}
+<div class="breadcrumb"><a href="{{ url_for('submissions') }}">Submissions</a><span>›</span><span>#{{ submission.id }}</span></div>
+<div class="page-heading-row submission-heading"><div><div class="eyebrow">SUBMISSION #{{ '%05d'|format(submission.id) }}</div><h1 class="page-title">{{ submission.problem_title }}</h1><p class="page-lede">Submitted by <strong>{{ submission.username }}</strong> · {{ language_labels[submission.language] }} · {{ submission.created_at[:19].replace('T', ' ') if submission.created_at else '—' }}</p></div><a class="button button-outline" href="{{ url_for('problem_detail', problem_id=submission.problem_id) }}">Back to problem ↗</a></div>
+<div class="submission-result-grid"><section class="content-card verdict-card"><div class="verdict-main"><div class="verdict-symbol" id="verdict-symbol">{% if submission.status == 'AC' %}✓{% elif submission.status in ['QUEUED','RUNNING'] %}<span class="big-spinner"></span>{% elif submission.status == 'WA' %}×{% elif submission.status == 'TLE' %}◷{% elif submission.status == 'CE' %}⌁{% else %}!{% endif %}</div><div><div class="verdict-overline">JUDGE VERDICT</div><h2 id="verdict-title">{% if submission.status == 'QUEUED' %}Waiting in queue{% elif submission.status == 'RUNNING' %}Running test cases{% elif submission.status == 'AC' %}Accepted{% elif submission.status == 'WA' %}Wrong Answer{% elif submission.status == 'TLE' %}Time Limit Exceeded{% elif submission.status == 'CE' %}Compilation Error{% else %}Runtime Error{% endif %}</h2><p id="verdict-subtitle">{% if submission.status in ['QUEUED','RUNNING'] %}This page refreshes verdict information automatically.{% elif submission.status == 'AC' %}Your solution passed every test case.{% else %}Review the details below and try another approach.{% endif %}</p></div></div><div class="progress-block"><div class="progress-label"><span>Test cases passed</span><strong id="progress-value">{{ submission.passed_tests }}{% if submission.total_tests %} / {{ submission.total_tests }}{% else %} / —{% endif %}</strong></div><div class="progress-track"><div class="progress-fill" id="progress-fill" style="width: {{ (100 * submission.passed_tests / submission.total_tests)|round|int if submission.total_tests else 0 }}%"></div></div><div class="progress-caption" id="progress-caption">{% if submission.status in ['QUEUED','RUNNING'] %}The judge checks your sample and hidden cases in order.{% elif submission.status == 'AC' %}All configured cases passed.{% else %}The judge stopped at the first failing test.{% endif %}</div></div><div class="verdict-stats"><div><span>Language</span><strong>{{ language_labels[submission.language] }}</strong></div><div><span>Judge wall time</span><strong id="runtime-value">{% if submission.execution_time_ms is not none %}{{ submission.execution_time_ms }} ms{% else %}—{% endif %}</strong></div><div><span>Time limit / test</span><strong>{{ submission.time_limit_ms }} ms</strong></div><div><span>Memory limit</span><strong>{{ submission.memory_limit_mb }} MB</strong></div></div>{% if submission.error_message %}<div class="error-detail" id="error-detail"><div class="error-detail-title">Judge feedback</div><pre>{{ submission.error_message }}</pre></div>{% else %}<div class="error-detail" id="error-detail" hidden><div class="error-detail-title">Judge feedback</div><pre id="error-text"></pre></div>{% endif %}<div class="verdict-actions"><a class="button button-primary" href="{{ url_for('problem_detail', problem_id=submission.problem_id) }}">Try again ↗</a><a class="button button-quiet" href="{{ url_for('submissions') }}">All submissions</a></div></section>
+<aside class="content-card submitted-code-card"><div class="submitted-code-head"><div><div class="card-section-title"><span class="section-icon">&lt;/&gt;</span> Submitted code</div><span class="submitted-code-sub">Read-only source snapshot</span></div><button class="copy-button" id="copy-code" type="button">Copy code</button></div><div class="submitted-code"><pre><code id="submitted-source">{{ submission.source_code }}</code></pre></div><div class="code-card-foot"><span><i class="editor-footer-dot"></i> Source saved</span><span>{{ submission.source_code|length }} chars</span></div></aside></div>
+{% endblock %}
+{% block scripts %}<script>
+(() => {
+ const copyButton = document.getElementById('copy-code');
+ copyButton?.addEventListener('click', async () => {
+   const text = document.getElementById('submitted-source').textContent;
+   try { await navigator.clipboard.writeText(text); copyButton.textContent = 'Copied ✓'; }
+   catch (_) { copyButton.textContent = 'Select code to copy'; }
+ });
+ const initial = {{ 'true' if submission.status in ['QUEUED', 'RUNNING'] else 'false' }};
+ if (!initial) return;
+ const endpoint = {{ url_for('submission_status', submission_id=submission.id)|tojson }};
+ const labels = {QUEUED:['Waiting in queue','Your submission is queued for execution.','◌'],RUNNING:['Running test cases','The judge is running your code in a sandbox.','◌'],AC:['Accepted','Your solution passed every test case.','✓'],WA:['Wrong Answer','Review the approach and try again.','×'],TLE:['Time Limit Exceeded','Your program exceeded the time limit.','◷'],RE:['Runtime Error','Your program failed while executing.','!'],CE:['Compilation Error','The compiler could not build your solution.','⌁']};
+ const title = document.getElementById('verdict-title'), subtitle = document.getElementById('verdict-subtitle');
+ const symbol = document.getElementById('verdict-symbol'), val = document.getElementById('progress-value'), fill = document.getElementById('progress-fill');
+ const caption = document.getElementById('progress-caption'), runtime = document.getElementById('runtime-value'), errorBox = document.getElementById('error-detail');
+ async function poll() {
+   try {
+     const response = await fetch(endpoint, {headers:{'Accept':'application/json'}, cache:'no-store'});
+     if (!response.ok) return setTimeout(poll, 3500);
+     const data = await response.json(); const copy = labels[data.status] || labels.RE;
+     title.textContent = data.status === 'QUEUED' ? 'Waiting in queue' : copy[0];
+     subtitle.textContent = copy[1]; symbol.textContent = copy[2];
+     const total = Number(data.total_tests || 0), passed = Number(data.passed_tests || 0);
+     val.textContent = `${passed} / ${total || '—'}`;
+     fill.style.width = `${total ? Math.min(100, 100 * passed / total) : 0}%`;
+     caption.textContent = data.status === 'AC' ? 'All configured cases passed.' : (['QUEUED','RUNNING'].includes(data.status) ? 'The judge checks your sample and hidden cases in order.' : 'The judge stopped at the first failing test.');
+     if (data.execution_time_ms !== null) runtime.textContent = `${data.execution_time_ms} ms`;
+     if (data.error_message) { errorBox.hidden = false; let pre = errorBox.querySelector('pre'); if (!pre) { pre = document.createElement('pre'); errorBox.appendChild(pre); } pre.textContent = data.error_message; }
+     if (['QUEUED','RUNNING'].includes(data.status)) setTimeout(poll, 1800);
+     else window.location.reload();
+   } catch (_) { setTimeout(poll, 3500); }
+ }
+ setTimeout(poll, 1200);
+})();
+</script>{% endblock %}

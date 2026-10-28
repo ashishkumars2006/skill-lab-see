@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}{{ problem.title }} — CodeForge{% endblock %}
+{% block content %}
+<div class="breadcrumb"><a href="{{ url_for('index') }}">Problems</a><span>›</span><span>{{ problem.title }}</span></div>
+<div class="problem-workspace">
+  <section class="problem-main">
+    <div class="problem-heading-row"><div><div class="problem-id-label">PROBLEM #{{ '%03d'|format(problem.id) }}</div><h1 class="page-title">{{ problem.title }}</h1><div class="problem-meta"><span class="difficulty difficulty-{{ problem.difficulty|lower }}"><i></i>{{ problem.difficulty }}</span><span>◷ {{ problem.time_limit_ms }} ms</span><span>▧ {{ problem.memory_limit_mb }} MB</span><span>✓ {{ accepted }} solved</span></div></div><a class="button button-quiet" href="{{ url_for('submissions') }}">Submission history ↗</a></div>
+    <div class="content-card statement-card"><div class="card-section-title"><span class="section-icon">▤</span> Problem statement</div><div class="statement-text">{{ problem.statement }}</div><div class="spec-grid"><div><div class="spec-title">Input format</div><p>{{ problem.input_format }}</p></div><div><div class="spec-title">Output format</div><p>{{ problem.output_format }}</p></div>{% if problem.constraints_text %}<div class="spec-wide"><div class="spec-title">Constraints</div><p class="constraint-text">{{ problem.constraints_text }}</p></div>{% endif %}</div></div>
+    <div class="content-card samples-card"><div class="card-section-title"><span class="section-icon">⌘</span> Sample test cases <span class="sample-public">PUBLIC</span></div>{% for sample in samples %}<div class="sample-block"><div class="sample-grid"><div><div class="sample-label">INPUT {{ loop.index }}</div><pre class="sample-code">{{ sample.input_data }}</pre></div><div><div class="sample-label">EXPECTED OUTPUT</div><pre class="sample-code output-code">{{ sample.expected_output }}</pre></div></div></div>{% endfor %}<div class="sample-footnote"><span>ⓘ</span> Hidden test cases are also used to determine your final verdict.</div></div>
+  </section>
+  <aside class="submit-sidebar"><div class="submit-card"><div class="submit-card-top"><span class="submit-card-icon">&lt;/&gt;</span><div><h2>Submit solution</h2><p>Make it pass every test.</p></div></div>
+    {% if g.user %}<form method="post" action="{{ url_for('submit_problem', problem_id=problem.id) }}" class="form-stack submit-form">{{ csrf_input() }}<label class="field-label" for="language">Language</label><select class="text-input select-input" id="language" name="language"><option value="python">Python 3</option><option value="cpp">C++17</option></select><div class="editor-label-row"><label class="field-label" for="source_code">Your code</label><span class="editor-hint">64 KB max</span></div><div class="editor-frame"><div class="editor-top"><span class="editor-dot"></span><span class="editor-dot"></span><span class="editor-dot"></span><span class="editor-file" id="editor-file">main.py</span><button class="editor-expand-toggle" type="button" id="editor-expand-toggle" aria-expanded="false" title="Expand editor">Expand ↗</button></div><textarea class="code-editor" id="source_code" name="source_code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" required maxlength="65536" aria-label="Source code">{{ starter_codes.python }}</textarea></div><div class="editor-footer"><span><i class="editor-footer-dot"></i> Ready to submit</span><span id="char-count">0 chars</span></div><button class="button button-primary button-full button-large submit-button" type="submit">Run &amp; submit <span>↗</span></button></form>
+    {% else %}<div class="sign-in-prompt"><div class="lock-icon">⌑</div><h3>Sign in to submit</h3><p>Your solution will be checked against public and hidden test cases.</p><a class="button button-primary button-full" href="{{ url_for('login', next=request.path) }}">Sign in to continue</a><a class="button button-quiet button-full" href="{{ url_for('register') }}">Create a free account</a></div>{% endif %}
+    <div class="limits-box"><div class="limits-title">Execution limits</div><div><span>Time limit</span><strong>{{ problem.time_limit_ms }} ms</strong></div><div><span>Memory limit</span><strong>{{ problem.memory_limit_mb }} MB</strong></div><div><span>Supported languages</span><strong>Python 3, C++17</strong></div></div>
+    {% if my_latest %}<a class="latest-submission" href="{{ url_for('submission_detail', submission_id=my_latest.id) }}"><span>Latest submission</span><strong class="status-pill status-{{ my_latest.status|lower }}">{{ my_latest.status }}</strong><span class="latest-arrow">↗</span></a>{% endif %}
+  </div><div class="safety-note"><span>◇</span><p>Your code runs in a restricted sandbox, separate from the web server process.</p></div></aside>
+</div>
+{% endblock %}
+{% block scripts %}<script>
+(() => {
+ const language = document.getElementById('language');
+ const editor = document.getElementById('source_code');
+ const filename = document.getElementById('editor-file');
+ const counter = document.getElementById('char-count');
+ const samples = {{ starter_codes|tojson }};
+ if (!language || !editor) return;
+ let currentLanguage = language.value;
+ const drafts = {python: editor.value, cpp: samples.cpp};
+ editor.addEventListener('input', () => { drafts[currentLanguage] = editor.value; counter.textContent = editor.value.length.toLocaleString() + ' chars'; });
+ language.addEventListener('change', () => {
+   drafts[currentLanguage] = editor.value;
+   currentLanguage = language.value;
+   editor.value = drafts[currentLanguage] ?? samples[currentLanguage] ?? '';
+   filename.textContent = currentLanguage === 'cpp' ? 'main.cpp' : 'main.py';
+   counter.textContent = editor.value.length.toLocaleString() + ' chars';
+ });
+ counter.textContent = editor.value.length.toLocaleString() + ' chars';
+ const expandToggle = document.getElementById('editor-expand-toggle');
+ const editorFrame = editor.closest('.editor-frame');
+ const setExpanded = (expanded) => {
+   editorFrame.classList.toggle('is-expanded', expanded);
+   document.body.classList.toggle('editor-modal-open', expanded);
+   expandToggle.setAttribute('aria-expanded', String(expanded));
+   expandToggle.textContent = expanded ? 'Collapse ×' : 'Expand ↗';
+   expandToggle.title = expanded ? 'Return to problem page' : 'Expand editor';
+   if (expanded) editor.focus();
+ };
+ expandToggle?.addEventListener('click', () => setExpanded(!editorFrame.classList.contains('is-expanded')));
+ document.addEventListener('keydown', (event) => {
+   if (event.key === 'Escape' && editorFrame.classList.contains('is-expanded')) setExpanded(false);
+ });
+})();
+</script>{% endblock %}

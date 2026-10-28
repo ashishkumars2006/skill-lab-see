@@ -1,0 +1,3 @@
+{% extends "base.html" %}
+{% block title %}{{ code }} — CodeForge{% endblock %}
+{% block content %}<div class="error-page"><div class="error-code">{{ '%03d'|format(code) }}</div><h1>Looks like a wrong turn<span class="heading-period">.</span></h1><p>{{ message }}</p><a class="button button-primary button-large" href="{{ url_for('index') }}">Back to problems ↗</a></div>{% endblock %}

@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Problems — CodeForge{% endblock %}
+{% block content %}
+<section class="hero">
+  <div class="hero-copy">
+    <div class="eyebrow"><span class="eyebrow-line"></span> THE PRACTICE ARENA</div>
+    <h1>Think it.<br><span class="text-gradient">Code it. Prove it.</span></h1>
+    <p class="hero-description">A focused space to sharpen your problem-solving skills. Write a solution, run it against hidden tests, and learn from every verdict.</p>
+    <div class="hero-actions"><a class="button button-primary button-large" href="#problem-list">Explore problems <span aria-hidden="true">↓</span></a>{% if not g.user %}<a class="button button-outline button-large" href="{{ url_for('register') }}">Create free account</a>{% else %}<a class="button button-outline button-large" href="{{ url_for('submissions') }}">View submissions</a>{% endif %}</div>
+    <div class="hero-note"><span class="pulse-dot"></span> Python 3 &nbsp;·&nbsp; C++17 &nbsp;·&nbsp; Sandboxed execution</div>
+  </div>
+  <div class="hero-art" aria-label="Code editor illustration">
+    <div class="code-window">
+      <div class="window-top"><div class="window-dots"><i></i><i></i><i></i></div><span>solution.py</span><span class="window-language">PYTHON 3</span></div>
+      <div class="code-body"><div class="code-line"><span class="line-no">01</span><span><b class="syntax-purple">def</b> <b class="syntax-blue">solve</b>():</span></div><div class="code-line"><span class="line-no">02</span><span>&nbsp;&nbsp; a, b = <b class="syntax-green">map</b>(<b class="syntax-green">int</b>, input().split())</span></div><div class="code-line"><span class="line-no">03</span><span>&nbsp;&nbsp; <b class="syntax-purple">print</b>(a + b)</span></div><div class="code-line"><span class="line-no">04</span><span></span></div><div class="code-line"><span class="line-no">05</span><span><b class="syntax-blue">solve</b>()</span></div><div class="code-divider"></div><div class="code-output"><span class="output-check">✓</span><div><small>JUDGE VERDICT</small><strong>Accepted</strong></div><span class="output-time">0.03s</span></div></div>
+      <div class="floating-tag tag-tests"><span>✓</span><div><strong>All tests passed</strong><small>6 / 6 test cases</small></div></div>
+      <div class="floating-tag tag-limit"><span class="limit-icon">◷</span><div><strong>Within limits</strong><small>Time · Memory</small></div></div>
+    </div>
+    <div class="hero-orbit orbit-one"></div><div class="hero-orbit orbit-two"></div>
+  </div>
+</section>
+<section class="stats-strip" aria-label="Platform statistics">
+  <div class="stat-item"><span class="stat-icon">⌘</span><div><strong>{{ stats.problems }}</strong><small>Practice problems</small></div></div>
+  <div class="stat-item"><span class="stat-icon">↗</span><div><strong>{{ stats.submissions }}</strong><small>Submissions made</small></div></div>
+  <div class="stat-item"><span class="stat-icon">✓</span><div><strong>{{ stats.solved }}</strong><small>Accepted user-solves</small></div></div>
+  <div class="stat-side-note"><span class="mini-spark">✳</span> Every submission is a chance to improve.</div>
+</section>
+<section class="problems-section" id="problem-list">
+  <div class="section-heading"><div><div class="eyebrow">YOUR NEXT CHALLENGE</div><h2>Problem library<span class="heading-period">.</span></h2><p>Start simple, build momentum, and keep going.</p></div><div class="problem-count">{{ problems|length }} <span>problems</span></div></div>
+  <div class="problem-toolbar"><label class="search-box"><span>⌕</span><input id="problem-search" type="search" placeholder="Search problems..." aria-label="Search problems"></label><div class="filter-pills" role="group" aria-label="Filter by difficulty"><button type="button" class="filter-pill selected" data-difficulty="All">All levels</button><button type="button" class="filter-pill" data-difficulty="Easy">Easy</button><button type="button" class="filter-pill" data-difficulty="Medium">Medium</button><button type="button" class="filter-pill" data-difficulty="Hard">Hard</button></div></div>
+  <div class="problem-table-wrap"><table class="problem-table"><thead><tr><th class="col-number">#</th><th>Problem</th><th>Difficulty</th><th class="hide-mobile">Accepted</th><th class="col-action"></th></tr></thead><tbody id="problem-rows">
+    {% for problem in problems %}<tr data-title="{{ problem.title|lower }}" data-difficulty="{{ problem.difficulty }}"><td class="problem-number">{{ '%02d'|format(loop.index) }}</td><td><a class="problem-title" href="{{ url_for('problem_detail', problem_id=problem.id) }}">{{ problem.title }}</a><span class="problem-subtitle">{{ problem.time_limit_ms }} ms · {{ problem.memory_limit_mb }} MB</span></td><td><span class="difficulty difficulty-{{ problem.difficulty|lower }}"><i></i>{{ problem.difficulty }}</span></td><td class="accepted-count hide-mobile"><span>✓</span> {{ problem.accepted_count }}</td><td class="table-arrow"><a href="{{ url_for('problem_detail', problem_id=problem.id) }}" aria-label="Open {{ problem.title }}">↗</a></td></tr>{% endfor %}
+  </tbody></table><div id="no-problems" class="empty-state" hidden>No problems match that search. Try another keyword or difficulty.</div></div>
+</section>
+<section class="bottom-cta"><div class="cta-icon">&lt;/&gt;</div><div><h3>Your next accepted solution starts here.</h3><p>Choose a problem, test your thinking, and watch your progress grow.</p></div><a class="button button-light" href="#problem-list">Pick a problem <span>↗</span></a></section>
+{% endblock %}
+{% block scripts %}<script>
+(() => {
+  const search = document.getElementById('problem-search');
+  const filters = [...document.querySelectorAll('.filter-pill')];
+  const rows = [...document.querySelectorAll('#problem-rows tr')];
+  const empty = document.getElementById('no-problems');
+  let level = 'All';
+  function update() {
+    const q = search.value.trim().toLowerCase(); let visible = 0;
+    rows.forEach(row => { const ok = row.dataset.title.includes(q) && (level === 'All' || row.dataset.difficulty === level); row.hidden = !ok; if (ok) visible++; });
+    empty.hidden = visible > 0;
+  }
+  search.addEventListener('input', update);
+  filters.forEach(btn => btn.addEventListener('click', () => { level = btn.dataset.difficulty; filters.forEach(x => x.classList.toggle('selected', x === btn)); update(); }));
+})();
+</script>{% endblock %}
